@@ -10,9 +10,9 @@
 
 import type * as crons from "../crons.js";
 import type * as ingest_ap from "../ingest/ap.js";
-import type * as ingest_casos from "../ingest/casos.js";
 import type * as ingest_pushbuild from "../ingest/pushbuild.js";
 import type * as ingest_seed from "../ingest/seed.js";
+import type * as ingest_states from "../ingest/states.js";
 import type * as ingest_write from "../ingest/write.js";
 import type * as races from "../races.js";
 import type * as setup from "../setup.js";
@@ -26,9 +26,9 @@ import type {
 declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   "ingest/ap": typeof ingest_ap;
-  "ingest/casos": typeof ingest_casos;
   "ingest/pushbuild": typeof ingest_pushbuild;
   "ingest/seed": typeof ingest_seed;
+  "ingest/states": typeof ingest_states;
   "ingest/write": typeof ingest_write;
   races: typeof races;
   setup: typeof setup;

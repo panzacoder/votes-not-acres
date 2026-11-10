@@ -2,8 +2,8 @@
 import { normalizePushbuild } from "../shared/adapters/pushbuild";
 import { normalizeTonmcg2024, TONMCG_2024_URL } from "../shared/adapters/tonmcg";
 import { racesFor } from "../shared/races";
-import { normalizeCaSos, type CaSosUnit } from "../shared/adapters/casos";
-import { caSosUrl, pushbuildUrl } from "../shared/adapters/sources";
+import { fetchStateRace, stateSiteKind } from "../shared/adapters/stateSites";
+import { pushbuildUrl } from "../shared/adapters/sources";
 import { parseCsv } from "../shared/csv";
 import countyIndex from "../shared/countyIndex.json";
 import townIndex from "../shared/townIndex.json";
@@ -16,16 +16,17 @@ const gov = racesFor(2026, "governor");
 let placed = 0;
 for (const st of [...new Set(gov.map((r) => r.state))]) {
   // States read from their own results site rather than Pushbuild.
-  const direct = gov.find((r) => r.state === st && r.sources.casos);
+  const direct = gov.find((r) => r.state === st && stateSiteKind(r));
   if (direct) {
-    const res = await fetch(caSosUrl(direct.sources.casos!.contest));
-    const race = res.ok ? normalizeCaSos((await res.json()) as CaSosUnit[], direct, now) : null;
-    if (!race) { console.log(st.padEnd(3), "no data from the California Secretary of State", res.status); continue; }
+    let race;
+    try { race = await fetchStateRace(direct, now); } catch (e) { console.log(st.padEnd(3), "state site failed:", (e as Error).message); continue; }
+    if (!race) { console.log(st.padEnd(3), "no data from the state site"); continue; }
     const real = race.counties.filter((c) => !c.fips.endsWith("000"));
     if (real.length) placed++;
     const sum = real.reduce((s, c) => s + c.total, 0);
-    console.log(st.padEnd(3), `${String(real.length).padStart(3)} of ${String(countiesIn(st)).padStart(3)} counties placed (California SoS; counties sum to ${sum.toLocaleString()}, statewide ${race.statewide?.total.toLocaleString()}, updated ${race.source.updatedAt})`,
-      race.unmatchedUnits.length ? `${race.unmatchedUnits.length} unplaced (e.g. ${race.unmatchedUnits.slice(0, 2).join(", ")})` : "", "|", race.candidates.map((c) => `${c.name} (${c.party})`).slice(0, 3).join(", "));
+    console.log(st.padEnd(3), `${String(real.length).padStart(3)} of ${String(countiesIn(st)).padStart(3)} counties placed (${race.source.name}; counties sum to ${sum.toLocaleString()}, statewide ${race.statewide?.total.toLocaleString()}, updated ${race.source.updatedAt ?? "not given"})`,
+      race.unmatchedUnits.length ? `${race.unmatchedUnits.length} unplaced (e.g. ${race.unmatchedUnits.slice(0, 2).join(", ")})` : "", "|",
+      race.candidates.map((c) => `${c.name} (${c.party}) ${race.statewide?.votes[c.key]?.toLocaleString()}`).slice(0, 4).join(", "));
     continue;
   }
   const res = await fetch(pushbuildUrl(st));

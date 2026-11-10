@@ -27,7 +27,12 @@ const GOVERNOR_CONTEST = "^(for |[a-z]{2} )?governor( ?(and|&|/) ?(lt\\.?|lieute
  * has no county rows for them. A race lists one free source, so two pollers never overwrite each other.
  */
 const STATE_DIRECT: Record<string, RaceDef["sources"]> = {
+  AL: { alsos: { ecode: "1001305", contest: "^governor$" } },
   CA: { casos: { contest: "governor" } },
+  NE: { totalvote: { service: "https://neresultswebservice.azurewebsites.us/ResultsAjax.svc", type: "SW", raceID: "13508", osn: "105", url: "https://electionresults.nebraska.gov/resultsSW.aspx?type=SW&map=CTY" } },
+  NM: { totalvote: { service: "https://nmresultswebservice.azurewebsites.us/NMResultsAjax.svc", type: "SW", raceID: "11530", osn: "202", url: "https://electionresults.sos.nm.gov/resultsSW.aspx?type=SW&map=CTY" } },
+  SD: { totalvote: { service: "https://sdresws.azurewebsites.us/ResultsAjax.svc", type: "SWR", raceID: "14896", osn: "205", url: "https://electionresults.sd.gov/resultsSW.aspx?type=SWR&map=CTY" } },
+  VT: { vtsos: { office: "GOVERNOR" } },
 };
 
 export const RACES_2026: RaceDef[] = GOVERNOR_2026.map((postal) => ({

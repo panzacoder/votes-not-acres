@@ -3,4 +3,5 @@ export const PUSHBUILD_DEFAULT_BASE = "https://raw.githubusercontent.com/pushbui
 export const pushbuildUrl = (postal: string, base = PUSHBUILD_DEFAULT_BASE) => `${base}/${postal.toLowerCase()}.csv`;
 /** California Secretary of State: state and every county for one contest ("governor", "us-senate"...). */
 export const caSosUrl = (contest: string) => `https://api.sos.ca.gov/returns/${contest}/county/all`;
+/** The other state sites build their URLs in their own adapters (totalvote.ts, alsos.ts, vtsos.ts). */
 export const AP_BASE = "https://api.ap.org/v2";

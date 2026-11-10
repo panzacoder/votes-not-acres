@@ -30,6 +30,12 @@ export interface RaceDef {
     pushbuild?: { contest: string };
     /** California Secretary of State API: the contest slug in its URLs, e.g. "governor". */
     casos?: { contest: string };
+    /** TotalVote sites (NE, NM, SD): the service the contest's county map calls, and the contest's ids on it. */
+    totalvote?: { service: string; type: string; raceID: string; osn: string; url: string };
+    /** Alabama Secretary of State pages: the election code in their URLs and a regex for the contest heading. */
+    alsos?: { ecode: string; contest: string };
+    /** Vermont Secretary of State: the office name as the site prints it, e.g. "GOVERNOR". */
+    vtsos?: { office: string };
     /** AP Elections API: officeID (G = governor, S = senate, P = president), optional raceID. */
     ap?: { officeID: string; raceID?: string };
     /** One-off historical import already in a normalized file. */

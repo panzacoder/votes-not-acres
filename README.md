@@ -13,7 +13,7 @@ npm run setup             # create race rows, import 2024, take a first 2026 sna
 npm run dev               # Vite + Convex together
 ```
 
-After `setup`, crons poll the active source on their own (Pushbuild every 2 minutes by default).
+After `setup`, crons poll the active source on their own (Pushbuild and the state sites every 2 minutes by default).
 
 No Convex account at hand (CI, a cloud sandbox)? `CONVEX_AGENT_MODE=anonymous npx convex dev` runs a
 local backend on port 3210 without logging in; the other commands work against it unchanged.
@@ -51,7 +51,7 @@ skip `setup:init`.
 
 ```
 shared/races/<year>.ts   which races exist, and how each source names them   (you edit these)
-shared/adapters/*        source → NormalizedRace (pure functions, testable without Convex)
+shared/adapters/*        source → NormalizedRace (pure functions, testable without Convex; stateSites.ts fetches)
 convex/ingest/*          crons fetch a source, run its adapter, write via ingest/write:upsertRace
 convex/races.ts          queries the client subscribes to
 src/                     React + d3 map; reactive, so it redraws as rows change
@@ -75,7 +75,7 @@ in one state (give each race its own `ap.raceID`).
 | Source | Cost | Granularity | Notes |
 |---|---|---|---|
 | **Pushbuild** (default) | Free, CC0 | State + county | Unofficial scrape of each state's results site, published as CSVs on GitHub. Coverage varies by state; check figures against the state. |
-| **California Secretary of State** | Free | State + county | Pushbuild has only California's statewide row, so the California race reads `api.sos.ca.gov` directly (`shared/adapters/casos.ts`, polled every 2 minutes alongside Pushbuild). |
+| **State election sites** | Free | State + county | For states where Pushbuild has only a statewide row, the race reads the state's own site instead (`STATE_DIRECT` in `shared/races/2026.ts`): California (`casos.ts`), Nebraska, New Mexico and South Dakota (one shared platform, `totalvote.ts`), Vermont (`vtsos.ts`, towns summed into counties) and Alabama (`alsos.ts`, HTML pages, one per county, polled every 10 minutes). `shared/adapters/stateSites.ts` does the fetching; the rest poll every 2 minutes. |
 | **AP Elections API** | Paid contract | State + county (+ race calls) | Set `AP_API_KEY` and `RESULTS_SOURCE=ap`. The adapter in `shared/adapters/ap.ts` follows AP's documented v2 JSON; confirm field names against your account's docs before relying on it. |
 | **Decision Desk HQ** | Paid | State + county | Not wired yet: write `shared/adapters/ddhq.ts` returning `NormalizedRace[]` and a poller like `convex/ingest/ap.ts`. |
 | 2024 president | Free | County | One-time import from `tonmcg/US_County_Level_Election_Results_08-24`. |
@@ -95,8 +95,12 @@ per state, how many counties were placed and what didn't match. Run it before el
   of the counties reported so far (Kansas, Michigan and Wisconsin currently have two counties each).
 - **Alaska** reports by state house district; it's one statewide dot.
 - **States with only statewide totals in Pushbuild** can be read from the state's own site instead:
-  write an adapter in `shared/adapters/` and name it in `STATE_DIRECT` in `shared/races/2026.ts`, as
-  California does. A race takes one free source, so two pollers never overwrite each other.
+  write an adapter in `shared/adapters/`, add its fetch to `stateSites.ts`, and name it in `STATE_DIRECT`
+  in `shared/races/2026.ts`. A race takes one free source, so two pollers never overwrite each other.
+  The contest ids for Nebraska, New Mexico and South Dakota and Alabama's election code are specific to
+  this election; a new year needs new ones (they're in the address of each site's contest page).
+- **Oklahoma** stays one statewide dot: its results site (results.okelections.gov) refuses automated requests.
+- **Alabama** pages show ten contests each, so that adapter only reaches top-of-ballot races.
 - **States with only statewide totals** in a feed show one dot at the state's center until county rows arrive.
 - **Below county** (precincts) needs per-state precinct shapes, which are inconsistent and usually
   published after certification. County is the floor for now.

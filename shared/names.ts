@@ -2,6 +2,7 @@
 export function normCounty(name: string): string {
   return name
     .toLowerCase()
+    .normalize("NFKD").replace(/[\u0300-\u036f]/g, "") // "Doña Ana" == "Dona Ana"
     .replace(/[.'’]/g, "")
     .replace(/\bsaint\b/g, "st")
     .replace(/\bste\b/g, "st")
