@@ -4,6 +4,7 @@ import { W, H, path, counties, states, positionOf, boundsOf, unitKeysForCounty, 
 import { STATES } from "../../shared/states";
 import { marginColor, PARTY_COLOR } from "../colors";
 import { fmtInt, fmtMargin, fmtPct } from "../format";
+import type { SpreadJob, SpreadResult } from "../spread.worker";
 
 export interface Dot {
   raceId: string; state: string; fips: string; name: string; total: number;
@@ -38,7 +39,11 @@ export function DotMap(props: Props) {
     nodes: Node[];
     spread: Map<string, [number, number]> | null;
     place: (ms: number) => void;
+    /** Ask for the spread layout of what's on screen now (soon, so a burst of changes makes one request). */
     respread: () => void;
+    /** Changes whenever the dots themselves do, so a layout is never reused for other data. */
+    version: number;
+    lastDots: Dot[] | undefined;
   } | null>(null);
   const reduce = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -58,6 +63,7 @@ export function DotMap(props: Props) {
       .scaleExtent([1, 40])
       .translateExtent([[-W * 0.25, -H * 0.25], [W * 1.25, H * 1.25]])
       .filter((e) => (e.type === "wheel" ? e.ctrlKey || e.metaKey : !e.button))
+      .on("start", () => clearTimeout(timer)) // the frame is about to change: don't lay out the old one
       .on("zoom", (e) => {
         st.t = e.transform;
         zoomG.attr("transform", e.transform.toString());
@@ -65,7 +71,53 @@ export function DotMap(props: Props) {
         st.spread = null; // spread positions are for the old frame
         st.place(0);
       })
-      .on("end", () => { if (propsRef.current.layout === "spread") st.respread(); });
+      .on("end", () => st.respread());
+
+    // The spread layout is worked out in a worker (see spread.worker.ts) and kept for the frame it
+    // was made for. It's requested whenever the data or the frame settles, not when "Spread out"
+    // is pressed, so by then it's usually ready and the dots start moving at once.
+    const worker = new Worker(new URL("../spread.worker.ts", import.meta.url), { type: "module" });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let ready: { key: string; pos: Map<string, [number, number]> } | null = null;
+    let running: { key: string; fips: string[] } | null = null;
+    let queued: { job: SpreadJob; fips: string[] } | null = null;
+    const frameKey = () => `${st.version}|${st.t.k},${st.t.x},${st.t.y}|${propsRef.current.focus ?? ""}`;
+    const show = () => {
+      if (propsRef.current.layout !== "spread" || !ready || ready.key !== frameKey() || st.spread === ready.pos) return;
+      st.spread = ready.pos;
+      st.place(reduce ? 0 : 600);
+    };
+    const send = (next: { job: SpreadJob; fips: string[] }) => {
+      running = { key: next.job.key, fips: next.fips };
+      worker.postMessage(next.job, [next.job.xs.buffer, next.job.ys.buffer, next.job.rs.buffer]);
+    };
+    const request = () => {
+      const key = frameKey();
+      if (ready?.key === key) return show();
+      if (running?.key === key) { queued = null; return; }
+      const { focus } = propsRef.current;
+      const live = st.nodes.filter((n) => !focus || n.state === focus);
+      const at = live.map((n) => st.t.apply([n.gx, n.gy]));
+      const next = {
+        fips: live.map((n) => n.fips),
+        job: {
+          key,
+          xs: Float64Array.from(at, (p) => p[0]),
+          ys: Float64Array.from(at, (p) => p[1]),
+          rs: Float64Array.from(live, (n) => Math.max(0.6, R(n.total, st.t.k))),
+        },
+      };
+      // One layout runs at a time; only the newest request waits behind it.
+      if (running) queued = next;
+      else send(next);
+    };
+    worker.onmessage = (ev: MessageEvent<SpreadResult>) => {
+      const { key, xs, ys } = ev.data;
+      if (running?.key === key) ready = { key, pos: new Map(running.fips.map((f, i) => [f, [xs[i], ys[i]]])) };
+      running = null;
+      if (queued) { send(queued); queued = null; }
+      show();
+    };
 
     const st = {
       zoom, t: d3.zoomIdentity, nodes: [] as Node[], spread: null as Map<string, [number, number]> | null,
@@ -84,21 +136,12 @@ export function DotMap(props: Props) {
         drawHalo();
       },
       respread: () => {
-        const { focus } = propsRef.current;
-        const live = st.nodes.filter((n) => !focus || n.state === focus);
-        const sim = live.map((n) => {
-          const [x, y] = st.t.apply([n.gx, n.gy]);
-          return { n, x, y, tx: x, ty: y, r: Math.max(0.6, R(n.total, st.t.k)) };
-        });
-        d3.forceSimulation(sim)
-          .force("x", d3.forceX<(typeof sim)[number]>((d) => d.tx).strength(0.2))
-          .force("y", d3.forceY<(typeof sim)[number]>((d) => d.ty).strength(0.2))
-          .force("c", d3.forceCollide<(typeof sim)[number]>((d) => d.r + 0.35).iterations(3))
-          .stop()
-          .tick(140);
-        st.spread = new Map(sim.map((d) => [d.n.fips, [d.x, d.y]]));
-        st.place(reduce ? 0 : 600);
+        clearTimeout(timer);
+        if (ready?.key === frameKey()) show(); // already worked out for this frame
+        else timer = setTimeout(request, 60);
       },
+      version: 0,
+      lastDots: undefined as Dot[] | undefined,
     };
     s.current = st;
 
@@ -109,7 +152,7 @@ export function DotMap(props: Props) {
     };
 
     svg.call(zoom).on("dblclick.zoom", null);
-    return () => { svg.selectAll("*").remove(); svg.on(".zoom", null); };
+    return () => { clearTimeout(timer); worker.terminate(); svg.selectAll("*").remove(); svg.on(".zoom", null); };
   }, []);
 
   // Data, view and layout.
@@ -119,6 +162,7 @@ export function DotMap(props: Props) {
     const { dots = [], view, layout, focus, selected, raceStates } = props;
     const byFips = new Map(dots.map((d) => [d.fips, d]));
 
+    if (st.lastDots !== props.dots) { st.lastDots = props.dots; st.version++; }
     const prev = new Map(st.nodes.map((n) => [n.fips, n]));
     st.nodes = dots
       .flatMap((d) => {
@@ -187,8 +231,11 @@ export function DotMap(props: Props) {
     const selShape = selected ? countyByFips.get(selected) : undefined;
     svg.select(".m-selected-shape").attr("d", view === "acres" && selShape ? path(selShape) : null);
 
-    if (layout === "spread") st.respread();
-    else { const had = st.spread; st.spread = null; st.place(had && !reduce ? 600 : 0); }
+    // In spread layout the dots keep the places they have until the new layout arrives.
+    const had = st.spread;
+    if (layout !== "spread") st.spread = null;
+    st.place(had && !st.spread && !reduce ? 600 : 0);
+    if (view === "votes") st.respread();
   }, [props.dots, props.view, props.layout, props.focus, props.selected, props.raceStates]);
 
   // Zoom to the focused state, or back out to the country.

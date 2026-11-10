@@ -28,6 +28,8 @@ export interface RaceDef {
   sources: {
     /** Pushbuild CSV feed: a case-insensitive regex (as a string) for the contest name. */
     pushbuild?: { contest: string };
+    /** California Secretary of State API: the contest slug in its URLs, e.g. "governor". */
+    casos?: { contest: string };
     /** AP Elections API: officeID (G = governor, S = senate, P = president), optional raceID. */
     ap?: { officeID: string; raceID?: string };
     /** One-off historical import already in a normalized file. */

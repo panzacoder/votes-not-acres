@@ -22,11 +22,19 @@ const GOVERNOR_2026 = [
  */
 const GOVERNOR_CONTEST = "^(for |[a-z]{2} )?governor( ?(and|&|/) ?(lt\\.?|lieutenant) governor)?( state)?$";
 
+/**
+ * States read from their own results site instead of Pushbuild, because Pushbuild's file
+ * has no county rows for them. A race lists one free source, so two pollers never overwrite each other.
+ */
+const STATE_DIRECT: Record<string, RaceDef["sources"]> = {
+  CA: { casos: { contest: "governor" } },
+};
+
 export const RACES_2026: RaceDef[] = GOVERNOR_2026.map((postal) => ({
   id: `2026-governor-${postal}`,
   year: 2026,
   office: "governor",
   state: postal,
   label: `${STATES[FIPS_BY_POSTAL[postal]].name} governor`,
-  sources: { pushbuild: { contest: GOVERNOR_CONTEST }, ap: { officeID: "G" } },
+  sources: { ...(STATE_DIRECT[postal] ?? { pushbuild: { contest: GOVERNOR_CONTEST } }), ap: { officeID: "G" } },
 }));

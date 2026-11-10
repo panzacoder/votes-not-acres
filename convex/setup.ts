@@ -9,6 +9,7 @@ export const init = internalAction({
     const defs: unknown = await ctx.runMutation(internal.ingest.write.syncRaceDefs, {});
     const seeded: unknown = await ctx.runAction(internal.ingest.seed.president2024, {});
     const live: unknown = await ctx.runAction(internal.ingest.pushbuild.poll, { year: 2026, force: true });
-    return { defs, seeded, live };
+    const california: unknown = await ctx.runAction(internal.ingest.casos.poll, { year: 2026, force: true });
+    return { defs, seeded, live, california };
   },
 });

@@ -1,7 +1,10 @@
 /**
  * Deploy backend + frontend to a Convex *preview* deployment.
  *
- *   CONVEX_DEPLOY_KEY=<preview deploy key> npm run deploy:preview -- <name> [--no-setup]
+ *   CONVEX_DEPLOY_KEY=<preview deploy key> npm run deploy:preview -- <name> [--fresh] [--no-setup]
+ *
+ * Reuses the preview of that name if there is one (same URL, data kept); --fresh deletes and
+ * recreates it. --no-setup skips setup:init.
  *
  * `static-hosting deploy` and `static-hosting upload --prod` only know the dev and production
  * deployments: every `convex run` they issue is either bare or carries `--prod`, and with a preview
@@ -27,8 +30,9 @@ const hostingBin = join(
 const args = process.argv.slice(2);
 const name = args.find((a) => !a.startsWith("--"));
 const runSetup = !args.includes("--no-setup");
+const fresh = args.includes("--fresh");
 
-if (!name) fail("Usage: npm run deploy:preview -- <preview-name> [--no-setup]");
+if (!name) fail("Usage: npm run deploy:preview -- <preview-name> [--fresh] [--no-setup]");
 if (!process.env.CONVEX_DEPLOY_KEY?.startsWith("preview:")) {
   fail("CONVEX_DEPLOY_KEY must be a preview deploy key (it starts with \"preview:\").");
 }
@@ -46,7 +50,7 @@ function run(command: string, argv: string[], opts: { cwd?: string; env?: NodeJS
 // 1. Backend. setup:init is idempotent, so it is safe to re-run on an existing preview.
 console.log(`\n▸ Deploying backend to preview "${name}"`);
 run(process.execPath, [
-  convexBin, "deploy", "--preview-create", name!,
+  convexBin, "deploy", fresh ? "--preview-create" : "--preview-name", name!,
   ...(runSetup ? ["--preview-run", "setup:init"] : []),
 ]);
 
