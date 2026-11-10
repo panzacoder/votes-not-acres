@@ -1,0 +1,39 @@
+{
+  "name": "election-map",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npm-run-all --parallel dev:frontend dev:backend",
+    "dev:frontend": "vite --open",
+    "dev:backend": "convex dev",
+    "setup": "convex run setup:init",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit && tsc -p convex --noEmit",
+    "gen:counties": "tsx scripts/gen-county-index.ts",
+    "gen:towns": "tsx scripts/gen-town-index.ts",
+    "test:adapters": "tsx scripts/test-adapters.ts"
+  },
+  "dependencies": {
+    "convex": "^1.49.0",
+    "d3": "^7.9.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "topojson-client": "^3.1.0",
+    "us-atlas": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/d3": "^7.4.3",
+    "@types/geojson": "^7946.0.16",
+    "@types/node": "^20.19.43",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@types/topojson-client": "^3.1.5",
+    "@types/topojson-specification": "^1.0.5",
+    "@vitejs/plugin-react": "^4.7.0",
+    "npm-run-all2": "^7.0.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.21"
+  },
+  "type": "module",
+  "private": true
+}
