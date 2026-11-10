@@ -18,6 +18,17 @@ After `setup`, crons poll the active source on their own (Pushbuild every 2 minu
 No Convex account at hand (CI, a cloud sandbox)? `CONVEX_AGENT_MODE=anonymous npx convex dev` runs a
 local backend on port 3210 without logging in; the other commands work against it unchanged.
 
+## Deploy
+
+```bash
+npm run deploy            # build, push the Convex backend, upload dist/ to Convex static hosting
+npx convex run setup:init --prod   # first deploy only: create race rows and import results
+```
+
+The frontend is served by the `@convex-dev/static-hosting` component (registered in
+`convex/convex.config.ts`) at `https://<deployment>.convex.site`, so there is no second host.
+In CI, set `CONVEX_DEPLOY_KEY` instead of logging in.
+
 ## How it fits together
 
 ```

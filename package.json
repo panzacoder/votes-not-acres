@@ -7,12 +7,14 @@
     "dev:backend": "convex dev",
     "setup": "convex run setup:init",
     "build": "tsc --noEmit && vite build",
+    "deploy": "static-hosting deploy",
     "typecheck": "tsc --noEmit && tsc -p convex --noEmit",
     "gen:counties": "tsx scripts/gen-county-index.ts",
     "gen:towns": "tsx scripts/gen-town-index.ts",
     "test:adapters": "tsx scripts/test-adapters.ts"
   },
   "dependencies": {
+    "@convex-dev/static-hosting": "^0.2.1",
     "convex": "^1.49.0",
     "d3": "^7.9.2",
     "react": "^18.3.1",
