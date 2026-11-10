@@ -59,3 +59,20 @@ export function normTown(name: string): string {
 /** The kind of place the Census (and some feeds) append to a town's name: "Andover town", "Boston city". */
 export const stripTownKind = (name: string) =>
   name.trim().replace(/\s+(town|city|plantation|township|gore|grant|location|purchase)$/i, "");
+
+/**
+ * A precinct's identifier as any source prints it, reduced to the part sources agree on:
+ * "PCT 619", "Precinct 619", "619-Voting District", "619.0", "619 - Elks Lodge" -> "619";
+ * "Sanderson 1A", "00001A" -> "1A"; "436.2" stays "436.2"; a name with no number is squeezed to letters.
+ */
+export function precinctKey(raw: string): string {
+  const t = raw
+    .toUpperCase()
+    .replace(/(PRECINCT|PREC|PCT|VOTING DISTRICT|VOTERS DISTRICT|VTD)\.?(?![A-Z])/g, " ")
+    .replace(/\bP-(?=\d)/, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^[-\s]+/, "");
+  const m = t.match(/^0*(\d+)(?:\.(\d+))?\s*([A-Z])?(?![A-Z0-9])/) ?? t.match(/(?:^|\s)0*(\d+)()([A-Z])?$/);
+  return m ? m[1] + (m[2] && Number(m[2]) ? `.${m[2]}` : "") + (m[3] ?? "") : t.replace(/[^A-Z0-9]+/g, "");
+}

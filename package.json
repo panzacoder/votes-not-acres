@@ -12,7 +12,8 @@
     "gen:counties": "tsx scripts/gen-county-index.ts",
     "gen:towns": "tsx scripts/gen-town-index.ts",
     "test:adapters": "tsx scripts/test-adapters.ts",
-    "deploy:preview": "tsx scripts/deploy-preview.ts"
+    "deploy:preview": "tsx scripts/deploy-preview.ts",
+    "gen:precincts": "tsx scripts/gen-precinct-points.ts"
   },
   "dependencies": {
     "@convex-dev/static-hosting": "^0.2.1",

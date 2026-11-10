@@ -11,8 +11,13 @@ export interface Dot {
   leaderParty: string | null; margin: number | null; reporting: number | null;
 }
 
+/** A dot below the county: a precinct, placed at its own point. `fips` is the county it belongs to. */
+export interface PrecinctDot { fips: string; name: string; x: number | null; y: number | null; total: number; leaderParty: string | null; margin: number | null }
+
 interface Props {
   dots: Dot[] | undefined;
+  /** Precinct dots for the focused state's race; counties that have them lose their single dot. */
+  precincts?: PrecinctDot[];
   view: "votes" | "acres";
   layout: "geo" | "spread";
   focus?: string; // state postal code
@@ -25,7 +30,8 @@ interface Props {
 /** One shared scale: a dot's area is proportional to votes cast, in map units at zoom 1. */
 const R = (votes: number, k: number) => (Math.sqrt(votes) / 90) * Math.sqrt(k);
 
-interface Node extends Dot { gx: number; gy: number; x: number; y: number; r: number }
+/** `id` is what tells dots apart: the county FIPS, or county + precinct name. */
+interface Node extends Dot { id: string; precinct?: boolean; gx: number; gy: number; x: number; y: number; r: number }
 
 export function DotMap(props: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -43,7 +49,8 @@ export function DotMap(props: Props) {
     respread: () => void;
     /** Changes whenever the dots themselves do, so a layout is never reused for other data. */
     version: number;
-    lastDots: Dot[] | undefined;
+    lastDots: unknown;
+    lastPrecincts: unknown;
   } | null>(null);
   const reduce = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -99,7 +106,7 @@ export function DotMap(props: Props) {
       const live = st.nodes.filter((n) => !focus || n.state === focus);
       const at = live.map((n) => st.t.apply([n.gx, n.gy]));
       const next = {
-        fips: live.map((n) => n.fips),
+        fips: live.map((n) => n.id),
         job: {
           key,
           xs: Float64Array.from(at, (p) => p[0]),
@@ -125,7 +132,7 @@ export function DotMap(props: Props) {
         const { focus } = propsRef.current;
         const sel = svg.select<SVGGElement>(".m-dots").selectAll<SVGCircleElement, Node>("circle");
         for (const n of st.nodes) {
-          const sp = st.spread?.get(n.fips);
+          const sp = st.spread?.get(n.id);
           [n.x, n.y] = sp ?? st.t.apply([n.gx, n.gy]);
           n.r = R(n.total, st.t.k);
         }
@@ -141,13 +148,14 @@ export function DotMap(props: Props) {
         else timer = setTimeout(request, 60);
       },
       version: 0,
-      lastDots: undefined as Dot[] | undefined,
+      lastDots: undefined as unknown,
+      lastPrecincts: undefined as unknown,
     };
     s.current = st;
 
     const drawHalo = () => {
       const { selected, view } = propsRef.current;
-      const n = st.nodes.find((d) => d.fips === selected);
+      const n = st.nodes.find((d) => !d.precinct && d.fips === selected);
       svg.select(".m-halo").attr("cx", n?.x ?? 0).attr("cy", n?.y ?? 0).attr("r", n && view === "votes" ? Math.max(3, n.r + 2) : 0);
     };
 
@@ -161,20 +169,33 @@ export function DotMap(props: Props) {
     const svg = d3.select(svgRef.current!);
     const { dots = [], view, layout, focus, selected, raceStates } = props;
     const byFips = new Map(dots.map((d) => [d.fips, d]));
+    // Precinct dots only while their state is in focus; at national scale a county is one dot.
+    const precincts = focus ? props.precincts ?? [] : [];
+    const split = new Set(precincts.map((p) => p.fips));
 
-    if (st.lastDots !== props.dots) { st.lastDots = props.dots; st.version++; }
-    const prev = new Map(st.nodes.map((n) => [n.fips, n]));
-    st.nodes = dots
-      .flatMap((d) => {
-        const p = positionOf(d.fips);
-        if (!p) return [];
-        const old = prev.get(d.fips);
-        return [{ ...d, gx: p[0], gy: p[1], x: old?.x ?? p[0], y: old?.y ?? p[1], r: old?.r ?? 0 }];
-      })
-      .sort((a, b) => b.total - a.total); // big first, so small dots sit on top
+    const shown = focus ? props.precincts : undefined;
+    if (st.lastDots !== props.dots || st.lastPrecincts !== shown) { st.lastDots = props.dots; st.lastPrecincts = shown; st.version++; }
+    const prev = new Map(st.nodes.map((n) => [n.id, n]));
+    const node = (d: Dot, id: string, p: [number, number], precinct?: boolean): Node => {
+      const old = prev.get(id) ?? (precinct ? prev.get(d.fips) : undefined); // precinct dots grow out of their county's dot
+      return { ...d, id, precinct, gx: p[0], gy: p[1], x: old?.x ?? p[0], y: old?.y ?? p[1], r: prev.get(id)?.r ?? 0 };
+    };
+    st.nodes = [
+      ...dots.flatMap((d) => {
+        const p = split.has(d.fips) ? null : positionOf(d.fips);
+        return p ? [node(d, d.fips, p)] : [];
+      }),
+      ...precincts.flatMap((pr) => {
+        const county = byFips.get(pr.fips);
+        const p = pr.x !== null && pr.y !== null ? ([pr.x, pr.y] as [number, number]) : positionOf(pr.fips);
+        if (!county || !p) return [];
+        const d: Dot = { raceId: county.raceId, state: county.state, fips: pr.fips, name: `${pr.name} · ${county.name}`, total: pr.total, leaderParty: pr.leaderParty, margin: pr.margin, reporting: null };
+        return [node(d, `${pr.fips}:${pr.name}`, p, true)];
+      }),
+    ].sort((a, b) => b.total - a.total); // big first, so small dots sit on top
 
     const circles = svg.select(".m-dots").selectAll<SVGCircleElement, Node>("circle")
-      .data(st.nodes, (n) => n.fips)
+      .data(st.nodes, (n) => n.id)
       .join((enter) => enter.append("circle").attr("cx", (n) => n.x).attr("cy", (n) => n.y).attr("r", 0))
       .attr("class", (n) => (n.total > 0 ? "m-dot" : "m-dot is-waiting"))
       .attr("fill", (n) => (n.total > 0 ? marginColor(n.leaderParty, n.margin) : null))
@@ -236,7 +257,7 @@ export function DotMap(props: Props) {
     if (layout !== "spread") st.spread = null;
     st.place(had && !st.spread && !reduce ? 600 : 0);
     if (view === "votes") st.respread();
-  }, [props.dots, props.view, props.layout, props.focus, props.selected, props.raceStates]);
+  }, [props.dots, props.precincts, props.view, props.layout, props.focus, props.selected, props.raceStates]);
 
   // Zoom to the focused state, or back out to the country.
   useEffect(() => {

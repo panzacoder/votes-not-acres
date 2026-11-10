@@ -48,6 +48,18 @@ export const nationalDots = query({
   },
 });
 
+/** Precinct dots for one race, where counties publish them. Empty for most races. */
+export const precinctDots = query({
+  args: { raceId: v.string() },
+  handler: async (ctx, { raceId }) => {
+    const rows = await ctx.db.query("precinctResults").withIndex("by_race", (q) => q.eq("raceId", raceId)).collect();
+    return rows.map((r) => ({
+      fips: r.fips, name: r.name, x: r.x ?? null, y: r.y ?? null, total: r.total,
+      leaderParty: r.leaderParty ?? null, margin: r.margin ?? null,
+    }));
+  },
+});
+
 /** One race in full: candidates plus every county's vote breakdown. */
 export const race = query({
   args: { raceId: v.string() },

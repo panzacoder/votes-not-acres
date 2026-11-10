@@ -52,7 +52,7 @@ skip `setup:init`.
 ```
 shared/races/<year>.ts   which races exist, and how each source names them   (you edit these)
 shared/adapters/*        source → NormalizedRace (pure functions, testable without Convex; stateSites.ts fetches)
-convex/ingest/*          crons fetch a source, run its adapter, write via ingest/write:upsertRace
+convex/ingest/*          crons fetch a source, run its adapter, write via ingest/write:upsertRace (precincts.ts: below county)
 convex/races.ts          queries the client subscribes to
 src/                     React + d3 map; reactive, so it redraws as rows change
 ```
@@ -102,6 +102,13 @@ per state, how many counties were placed and what didn't match. Run it before el
 - **Oklahoma** stays one statewide dot: its results site (results.okelections.gov) refuses automated requests.
 - **Alabama** pages show ten contests each, so that adapter only reaches top-of-ballot races.
 - **States with only statewide totals** in a feed show one dot at the state's center until county rows arrive.
-- **Below county** (precincts) needs per-state precinct shapes, which are inconsistent and usually
-  published after certification. County is the floor for now.
+- **Below county** (precincts) is wired for Florida's 2026 governor race only, and only where a county
+  both publishes a precinct file and its precincts can be placed: 15 of 67 counties so far (zoom into
+  Florida to see them). `shared/races/precincts2026.ts` lists the county files; `shared/precincts/sources.ts`
+  says where precinct locations come from, and `npm run gen:precincts -- FL` rebuilds
+  `shared/precincts/FL.json`. Locations are each county's own precinct layer where one is listed, and
+  otherwise the Census Bureau's 2020 voting districts matched by precinct number. Those predate the 2022
+  redistricting, so a precinct that kept its number may sit somewhere slightly different now; a county is
+  only split into precinct dots when 90% of its votes match, and the remainder shows as one
+  "Other precincts" dot at the county's center.
 - The map bundles us-atlas (~800 KB). Move it to `public/` and fetch it if first load matters.

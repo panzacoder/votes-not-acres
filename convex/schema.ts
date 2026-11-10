@@ -43,6 +43,22 @@ export default defineSchema({
     .index("by_race", ["raceId", "fips"])
     .index("by_year_office", ["year", "office"]),
 
+  /** One row per precinct, for races and counties that publish below the county (shared/races/precincts2026.ts). */
+  precinctResults: defineTable({
+    raceId: v.string(),
+    fips: v.string(), // the county
+    name: v.string(),
+    // Where the dot goes, in the map's frame. Absent on a county's "other precincts" row (votes we couldn't place).
+    x: v.optional(v.number()),
+    y: v.optional(v.number()),
+    total: v.number(),
+    leaderParty: v.optional(v.string()),
+    margin: v.optional(v.number()),
+  }).index("by_race", ["raceId", "fips"]),
+
+  /** The file each county's precinct rows were last read from, so an unchanged file isn't rewritten. */
+  precinctFiles: defineTable({ raceId: v.string(), fips: v.string(), url: v.string(), placedShare: v.number() }).index("by_race", ["raceId", "fips"]),
+
   ingestRuns: defineTable({
     source: v.string(),
     startedAt: v.number(),

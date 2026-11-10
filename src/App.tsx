@@ -26,6 +26,7 @@ export default function App() {
   const dots = useQuery(api.races.nationalDots, args);
   const focusRace = races?.find((r) => r.state === route.state);
   const detail = useQuery(api.races.race, focusRace ? { raceId: focusRace.raceId } : "skip");
+  const precincts = useQuery(api.races.precinctDots, focusRace ? { raceId: focusRace.raceId } : "skip");
   const status = useQuery(api.races.ingestStatus);
   const raceStates = useMemo(() => new Set((races ?? []).map((r) => r.state)), [races]);
 
@@ -80,6 +81,7 @@ export default function App() {
           </div>
           <DotMap
             dots={dots}
+            precincts={precincts}
             view={view}
             layout={layout}
             focus={route.state}

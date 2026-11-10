@@ -10,6 +10,7 @@ export const init = internalAction({
     const seeded: unknown = await ctx.runAction(internal.ingest.seed.president2024, {});
     const live: unknown = await ctx.runAction(internal.ingest.pushbuild.poll, { year: 2026, force: true });
     const states: unknown = await ctx.runAction(internal.ingest.states.poll, { year: 2026, force: true });
-    return { defs, seeded, live, states };
+    const precincts: unknown = await ctx.runAction(internal.ingest.precincts.poll, { year: 2026, force: true });
+    return { defs, seeded, live, states, precincts };
   },
 });
