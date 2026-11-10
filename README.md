@@ -29,6 +29,23 @@ The frontend is served by the `@convex-dev/static-hosting` component (registered
 `convex/convex.config.ts`) at `https://<deployment>.convex.site`, so there is no second host.
 In CI, set `CONVEX_DEPLOY_KEY` instead of logging in.
 
+### Preview deployments
+
+```bash
+CONVEX_DEPLOY_KEY=<preview deploy key> npm run deploy:preview -- review
+```
+
+This pushes the backend to a preview deployment named `review`, runs `setup:init` on it, builds
+the frontend against its `.convex.cloud` URL, uploads `dist/`, and prints the `.convex.site` link.
+
+Use this instead of `npm run deploy` with a preview key. The hosting CLI's `deploy` and
+`upload --prod` only address the dev and production deployments; with a preview key their
+`convex run` calls are refused ("Not authorized"). `scripts/deploy-preview.ts` runs the hosting
+`upload` with every Convex call pinned to `--preview-name <name>`, so it cannot touch production.
+
+Each run **replaces** the preview of that name: Convex provisions a fresh deployment, so the URL
+changes and the data is re-imported. Pass `--no-setup` to skip the import (the map will be empty).
+
 ## How it fits together
 
 ```

@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit && tsc -p convex --noEmit",
     "gen:counties": "tsx scripts/gen-county-index.ts",
     "gen:towns": "tsx scripts/gen-town-index.ts",
-    "test:adapters": "tsx scripts/test-adapters.ts"
+    "test:adapters": "tsx scripts/test-adapters.ts",
+    "deploy:preview": "tsx scripts/deploy-preview.ts"
   },
   "dependencies": {
     "@convex-dev/static-hosting": "^0.2.1",
