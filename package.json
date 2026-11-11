@@ -15,7 +15,8 @@
     "deploy:preview": "tsx scripts/deploy-preview.ts",
     "gen:precincts": "tsx scripts/gen-precinct-points.ts",
     "import:precincts": "tsx scripts/import-precincts.ts",
-    "find:layers": "tsx scripts/scrape/find-layers.ts"
+    "find:layers": "tsx scripts/scrape/find-layers.ts",
+    "probe": "tsx scripts/scrape/probe.ts"
   },
   "dependencies": {
     "@convex-dev/static-hosting": "^0.2.1",
