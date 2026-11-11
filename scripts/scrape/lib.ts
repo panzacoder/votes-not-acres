@@ -79,6 +79,9 @@ export async function scoreLayer(layerUrl: string, precincts: { name: string; to
     const keys = new Set(rows.map((r) => r[field]).filter((v) => v !== null && v !== undefined && v !== "").map((v) => precinctKey(String(v))));
     // A field with only a handful of distinct values is a district or a flag, not a precinct id.
     if (keys.size < Math.min(precincts.length, rows.length) * 0.5) continue;
+    // And one with far more values than there are precincts is something else that starts with a number
+    // (street addresses matched polling-place names once).
+    if (keys.size > precincts.length * 4) continue;
     const share = precincts.filter((p) => keys.has(precinctKey(p.name))).reduce((s, p) => s + p.total, 0) / total;
     if (!best || share > best.share) best = { url: layerUrl, name: meta.name, features: rows.length, field, share, sample: rows.slice(0, 3).map((r) => String(r[field])) };
   }
