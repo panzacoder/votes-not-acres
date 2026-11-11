@@ -83,6 +83,55 @@ in one state (give each race its own `ap.raceID`).
 `npm run test:adapters` runs the Pushbuild and 2024 adapters against the live files and prints,
 per state, how many counties were placed and what didn't match. Run it before election night.
 
+## Precincts (Florida, on request)
+
+Zoom into Florida and the counties that publish precinct results break into precinct dots. Nothing
+polls this: the data is settled, so it is read when you ask.
+
+```bash
+npm run import:precincts                                  # read every county, print what can be placed
+npm run import:precincts -- --push --preview-name review  # also write it to that deployment (--prod for production)
+npm run import:precincts -- --refresh --only 12031,12086  # re-read just these counties from their sites
+```
+
+Rows read from county sites are kept in `.cache/precincts/` so a push can be repeated without
+re-reading. Run it from an ordinary home or office connection if you can: several county sites
+refuse requests from cloud machines (see below), and they will read as failures from one.
+
+A precinct dot needs two things, and each has its own list:
+
+| | where it's listed | how it's filled |
+|---|---|---|
+| **Results** per precinct | `shared/races/precincts2026.ts` | one adapter per results platform in `shared/adapters/` (`voterfocus.ts` covers most Florida counties) |
+| **A location** per precinct | `shared/precincts/sources.ts` → `npm run gen:precincts -- FL` → `shared/precincts/FL.json` | the county's own current precinct layer where one is listed; otherwise the Census Bureau's 2020 voting district with the same number |
+
+A county becomes precinct dots only when 90% of its votes can be placed; the remainder shows as one
+"Other precincts" dot at the county's center. Census 2020 points predate the 2022 redistricting, so a
+precinct that kept its number may sit where it used to be (still inside its county). Counties with
+their own layer listed in `sources.ts` don't have that caveat.
+
+### Finding sources for more counties
+
+What worked, cheapest first:
+
+1. **Recognise the platform, then write one adapter.** Most Florida counties use the same results
+   site, so one adapter and a list of (county code, election id) pairs covers them.
+2. **Search catalogues with code, not agents.** `npm run find:layers` searches ArcGIS Online for each
+   county and scores every candidate layer against that county's own precinct names. It rejects
+   layers outside the county and ignores row-number fields (both produced false matches before).
+3. **Use small agents only for what's left**, one narrow question each ("where does this county
+   publish its results?"), and give them `npm run -s probe -- ...` instead of letting them read pages:
+   `page`, `render` (a browser, for pages built by JavaScript), `vf`, `arcgis`, `services`, `layer`.
+   Each prints a few lines, and `layer` returns a score, so the answer is a test result rather than a judgement.
+4. **A refusal is final.** A site that answers 403 or shows a captcha is recorded as blocked. The
+   probe won't open a browser on a site that refused a plain request.
+
+Cost so far, for Florida's 67 counties: two agent passes (67 and 40 small agents) used about 4.3M
+and 2.5M tokens, roughly 64k per agent both times. Tightening the brief and the tools did not lower
+the per-agent cost, because most of it is the fixed overhead of each step an agent takes. What did
+lower the total was needing fewer agents: steps 1 and 2 above found more sources than the agents did
+and cost nothing per county.
+
 ## Known gaps
 
 - **New England** (CT, RI, MA, VT, NH, ME) reports by town. `shared/townIndex.json` maps each town to
@@ -102,13 +151,5 @@ per state, how many counties were placed and what didn't match. Run it before el
 - **Oklahoma** stays one statewide dot: its results site (results.okelections.gov) refuses automated requests.
 - **Alabama** pages show ten contests each, so that adapter only reaches top-of-ballot races.
 - **States with only statewide totals** in a feed show one dot at the state's center until county rows arrive.
-- **Below county** (precincts) is wired for Florida's 2026 governor race only, and only where a county
-  both publishes a precinct file and its precincts can be placed: 15 of 67 counties so far (zoom into
-  Florida to see them). `shared/races/precincts2026.ts` lists the county files; `shared/precincts/sources.ts`
-  says where precinct locations come from, and `npm run gen:precincts -- FL` rebuilds
-  `shared/precincts/FL.json`. Locations are each county's own precinct layer where one is listed, and
-  otherwise the Census Bureau's 2020 voting districts matched by precinct number. Those predate the 2022
-  redistricting, so a precinct that kept its number may sit somewhere slightly different now; a county is
-  only split into precinct dots when 90% of its votes match, and the remainder shows as one
-  "Other precincts" dot at the county's center.
+- **Below county** (precincts) exists for Florida's 2026 governor race only: see the next section.
 - The map bundles us-atlas (~800 KB). Move it to `public/` and fetch it if first load matters.
