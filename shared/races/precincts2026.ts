@@ -1,5 +1,3 @@
-import { RACES_2026 } from "./2026";
-
 /**
  * Races that also have results below the county: which counties publish precinct results, and
  * where. `npm run import:precincts` reads them on request (nothing here is polled). Precinct dots
@@ -28,7 +26,8 @@ export const PRECINCT_SOURCES_2026: PrecinctSource[] = [
   {
     raceId: "2026-governor-FL",
     state: "FL",
-    contest: RACES_2026.find((r) => r.state === "FL")!.sources.pushbuild!.contest,
+    // County sites abbreviate freely: "Governor and Lieutenant Governor", "Gov./Lt. Gov.", "Gov & Lt. Gov".
+    contest: "^gov(ernor)?\\.?( ?(and|&|/) ?(lt\\.?|lieutenant) gov(ernor)?\\.?)?$",
     electionDate: "11/3/2026",
     counties: [
       vf("12001", "Alachua", "ALA", "4097"),
@@ -73,6 +72,20 @@ export const PRECINCT_SOURCES_2026: PrecinctSource[] = [
       vf("12111", "St. Lucie", "STL", "4089"),
       vf("12115", "Sarasota", "SAR", "4105"),
       vf("12117", "Seminole", "SEM", "4119"),
+      vf("12019", "Clay", "CLA", "4086"),
+      vf("12047", "Hamilton", "HAM", "4101"),
+      vf("12051", "Hendry", "HEN", "4077"),
+      vf("12053", "Hernando", "HER", "4106"),
+      vf("12057", "Hillsborough", "HIL", "4074"),
+      vf("12065", "Jefferson", "JEF", "4115"),
+      vf("12095", "Orange", "ORA", "4090"),
+      vf("12107", "Putnam", "PUT", "4081"),
+      vf("12113", "Santa Rosa", "SAN", "4093"),
+      vf("12121", "Suwannee", "SUW", "4112"),
+      vf("12123", "Taylor", "TAY", "4107"),
+      vf("12125", "Union", "UNI", "4121"),
+      vf("12129", "Wakulla", "WAK", "4128"),
+      vf("12131", "Walton", "WAL", "4091"),
     ],
   },
 ];

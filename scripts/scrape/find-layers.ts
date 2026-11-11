@@ -35,7 +35,8 @@ for (const src of PRECINCT_SOURCES_2026) {
       }
       if (best && best.share >= 0.97) break;
     }
-    const verdict = best && best.share >= 0.9 && best.share > now ? "USE" : "no";
+    // A county's own current layer beats the 2020 Census points even at the same score: it is where precincts are now.
+    const verdict = best && best.share >= 0.9 && best.share >= now ? "USE" : "no";
     console.log(`${county.name.padEnd(13)} now ${(now * 100).toFixed(0).padStart(3)}%  best ${best ? `${(best.share * 100).toFixed(0).padStart(3)}% ${best.name} [${best.field}: ${best.sample.join(", ")}] (${seen.size} services)` : `none of ${seen.size} services`}  ${verdict}`);
     if (verdict === "USE") console.log(`      { fips: "${county.fips}", url: "${best!.url}", field: "${best!.field}" }, // ${county.name}`);
   }
