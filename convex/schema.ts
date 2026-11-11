@@ -56,9 +56,6 @@ export default defineSchema({
     margin: v.optional(v.number()),
   }).index("by_race", ["raceId", "fips"]),
 
-  /** The file each county's precinct rows were last read from, so an unchanged file isn't rewritten. */
-  precinctFiles: defineTable({ raceId: v.string(), fips: v.string(), url: v.string(), placedShare: v.number() }).index("by_race", ["raceId", "fips"]),
-
   ingestRuns: defineTable({
     source: v.string(),
     startedAt: v.number(),

@@ -10,8 +10,6 @@ crons.interval("2026 results: Pushbuild", { minutes: 2 }, internal.ingest.pushbu
 crons.interval("2026 results: state sites", { minutes: 2 }, internal.ingest.states.poll, { year: 2026, kinds: ["casos", "totalvote", "vtsos"] });
 // Alabama is one page per county, so it's asked less often.
 crons.interval("2026 results: Alabama", { minutes: 10 }, internal.ingest.states.poll, { year: 2026, kinds: ["alsos"] });
-// Precinct files are large and change rarely after election night.
-crons.interval("2026 results: precincts", { minutes: 30 }, internal.ingest.precincts.poll, { year: 2026 });
 crons.interval("2026 results: AP", { minutes: 1 }, internal.ingest.ap.poll, { year: 2026, electionDate: "2026-11-03" });
 
 export default crons;
